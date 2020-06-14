@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from PIL import Image
 
-im = Image.open("images/insight_gray8.tif")
+im = Image.open("images/cell_gray16.tif")
 print("Format:\t\t" + im.format)
 print("Size:\t\t" + str(im.size))
 print("Mode:\t\t" + im.mode)
