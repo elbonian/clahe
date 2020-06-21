@@ -38,6 +38,18 @@ def clahe(image, num_x_regions, num_y_regions, num_of_bins, cliplimit):
     print(aLUT)
     print(len(aLUT))
 
+    channel_data = list(image.getdata())
+
+    uiY = 0
+    pImPointer = 0
+    while uiY < num_y_regions:
+        uiX = 0
+        while uiX < num_x_regions:
+            make_histogram(channel_data, pImPointer, x_res, uiXSize, uiYSize, num_of_bins, aLUT)
+            uiX = uiX + 1
+            pImPointer = pImPointer + uiXSize
+        uiY = uiYSize + 1
+
 
 # To speed up histogram clipping, the input image [min_value,max_value] is scaled down to
 # [, num_of_bins-1]. This function calculates the LUT.
@@ -47,3 +59,18 @@ def make_lut(min_value, max_value, num_of_bins):
     for i in range(min_value, max_value + 1):
         plut.append(int((i - min_value) / binsize))
     return plut
+
+def make_histogram(channel_data, pos, uiXRes, uiSizeX, uiSizeY, uiNrGreylevels, pLookupTable):
+    histogram = [0] * uiNrGreylevels
+    i = 0
+    while i < uiSizeY:
+        imagePointer = uiSizeX
+        while pos < imagePointer:
+            pixel_value = channel_data[pos]
+            lut_value = pLookupTable[pixel_value]
+            histogram[lut_value] = histogram[lut_value] + 1
+            pos = pos + 1
+        imagePointer = imagePointer + uiXRes
+        pos = int(pos - uiSizeX)
+        i = i + 1
+    return histogram
