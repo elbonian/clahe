@@ -2,7 +2,7 @@ from PIL import Image
 
 # Main clahe function. It will return an Image object when finished
 # Implementation is based on "Graphics Gems IV", Academic Press, 1994
-def clahe(image, num_x_regions, num_y_regions, num_of_bins, cliplimit):
+def clahe(image, uiNrX, uiNrY, num_of_bins, cliplimit):
     x_res = image.size[0]
     y_res = image.size[1]
     min_value = image.getextrema()[0]
@@ -11,20 +11,20 @@ def clahe(image, num_x_regions, num_y_regions, num_of_bins, cliplimit):
 
     # Preliminary input checking
     # 1) image resolution on the X axis has to be a multiple of the number of X-axis regions
-    if x_res % num_x_regions != 0:
+    if x_res % uiNrX != 0:
         return -1
     # 2) image resolution on the Y axis has to be a multiple of the number of Y-axis regions
-    if y_res % num_y_regions != 0:
+    if y_res % uiNrY != 0:
         return -1
     # 3) number if regions can't be less than 2
-    if num_y_regions < 2 or num_x_regions < 2:
+    if uiNrY < 2 or uiNrX < 2:
         return -1
     # 4) if the number of bins passed is zero, let's assign a default 
     if num_of_bins == 0:
         num_of_bins = 128
     
-    uiXSize = x_res / num_x_regions
-    uiYSize = y_res / num_y_regions
+    uiXSize = x_res / uiNrX
+    uiYSize = y_res / uiNrY
     ulNrPixels = uiXSize * uiYSize
 
     if cliplimit>0:
@@ -41,15 +41,18 @@ def clahe(image, num_x_regions, num_y_regions, num_of_bins, cliplimit):
     channel_data = list(image.getdata())
 
     uiY = 0
-    pImPointer = 0
-    while uiY < num_y_regions:
+    pImPos = 0
+    while uiY < uiNrY:
         uiX = 0
-        while uiX < num_x_regions:
-            make_histogram(channel_data, pImPointer, x_res, uiXSize, uiYSize, num_of_bins, aLUT)
+        while uiX < uiNrX:
+            pulHist = make_histogram(channel_data, pImPos, x_res, uiXSize, uiYSize, num_of_bins, aLUT)
+            clip_histogram(pulHist, num_of_bins, ulClipLimit)
+            map_histogram(pulHist, min_value, max_value, num_of_bins, ulNrPixels)
             uiX = uiX + 1
-            pImPointer = pImPointer + uiXSize
-        uiY = uiYSize + 1
-
+            pImPos = pImPos + uiXSize
+        uiY = uiY + 1
+        pImPos = pImPos + (uiYSize - 1) * x_res
+    # TODO implement interpolation
 
 # To speed up histogram clipping, the input image [min_value,max_value] is scaled down to
 # [, num_of_bins-1]. This function calculates the LUT.
@@ -117,5 +120,19 @@ def clip_histogram(pulHistogram, uiNrGreylevels, ulClipLimit):
                     ulNrExcess = ulNrExcess - 1
                 pulBinPos = pulBinPos + ulStepSize
             pulHistoPos = pulHistoPos + 1
+    
+    return pulHistogram
+
+def map_histogram(pulHistogram, Min, Max, uiNrGreylevels, ulNrOfPixels):
+    ulSum = 0
+    fScale = (Max - Min)/ulNrOfPixels
+
+    i = 0
+    while i < uiNrGreylevels:
+        ulSum = ulSum + pulHistogram[i]
+        pulHistogram[i] = int(Min + ulSum * fScale)
+        if pulHistogram[i] > Max:
+            pulHistogram[i] = Max
+        i = i + 1
     
     return pulHistogram
