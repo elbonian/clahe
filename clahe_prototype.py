@@ -74,3 +74,47 @@ def make_histogram(channel_data, pos, uiXRes, uiSizeX, uiSizeY, uiNrGreylevels, 
         pos = int(pos - uiSizeX)
         i = i + 1
     return histogram
+
+def clip_histogram(pulHistogram, uiNrGreylevels, ulClipLimit):
+    ulNrExcess, lBinExcess = 0
+    
+    i = 0
+    while i < uiNrGreylevels:
+        lBinExcess = int(pulHistogram[i]) - int(ulClipLimit)
+        if lBinExcess > 0:
+            ulNrExcess = ulNrExcess + lBinExcess
+        i = i + 1
+    
+    ulBinIncr = int(ulNrExcess / uiNrGreylevels)
+    ulUpper = ulClipLimit - ulBinIncr
+
+    i = 0
+    while i < uiNrGreylevels:
+        if pulHistogram[i] > ulClipLimit:
+            pulHistogram[i] = ulClipLimit
+        else:
+            if pulHistogram[i] > ulUpper:
+                ulNrExcess = ulNrExcess - pulHistogram[i] - ulUpper
+                pulHistogram[i] = ulClipLimit
+            else
+                ulNrExcess = ulNrExcess - ulBinIncr
+                pulHistogram[i] = pulHistogram[i] + ulBinIncr
+        i = i + 1
+    
+    pulEndPos = 0
+    while ulNrExcess:
+        pulEndPos = uiNrGreylevels
+        pulHistoPos = 0
+        while ulNrExcess and pulHistoPos < pulEndPos:
+            ulStepSize = int(uiNrGreylevels / ulNrExcess)
+            if ulStepSize < 1:
+                ulStepSize = 1
+            pulBinPos = pulHistoPos
+            while pulBinPos < pulEndPos and ulNrExcess
+                if pulHistogram[pulBinPos] < ulClipLimit
+                    pulHistogram[pulBinPos] = pulHistogram[pulBinPos] - 1
+                    ulNrExcess = ulNrExcess - 1
+                pulBinPos = pulBinPos + ulStepSize
+            pulHistoPos = pulHistoPos + 1
+    
+    return pulHistogram
