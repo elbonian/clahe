@@ -52,7 +52,49 @@ def clahe(image, uiNrX, uiNrY, num_of_bins, cliplimit):
             pImPos = pImPos + uiXSize
         uiY = uiY + 1
         pImPos = pImPos + (uiYSize - 1) * x_res
-    # TODO implement interpolation
+    
+    uiY = pImPos = uiSubY = uiSubX = uiYU = uiYB = uiXL = uiXR = 0
+    while uiY <= uiNrY:
+        if uiY == 0:
+            uiSubY = uiYSize >> 1
+            uiYU = uiNrY - 1
+            uiYB = uiYU
+        else:
+            if uiY == uiNrY:
+                uiSubY = uiYSize >> 1
+                uiYU = uiNrY - 1
+                uiYB = uiYU
+            else:
+                uiSubY = uiYSize
+                uiYU = uiYU - 1
+                uiYB = uiYU + 1
+        uiX = 0
+        while uiX <= uiNrX:
+            if uiX == 0:
+                uiSubX = uiXSize >> 1
+                uiXL = 0
+                uiXR = 0
+            else:
+                if uiX == uiNrX:
+                    uiSubX = uiXSize >> 1
+                    uiXL = uiNrX - 1
+                    uiXR = uiXL
+                else:
+                    uiSubX = uiXSize
+                    uiXL = uiX - 1
+                    uiXR = uiXL + 1
+            pulLUPos = num_of_bins * (uiYU * uiNrX + uiXL)
+            pulRUPos = num_of_bins * (uiYU * uiNrX + uiXR)
+            pulLBPos = num_of_bins * (uiYB * uiNrX + uiXL)
+            pulRBPos = num_of_bins * (uiYB * uiNrX + uiXR)
+            #interpolate call
+            pImPos = pImPos + uiSubX
+            uiX = uiX + 1
+        pImPos = pImPos + (uiSubY - 1) * x_res
+        uiY = uiY + 1
+        #finish return
+        
+
 
 # To speed up histogram clipping, the input image [min_value,max_value] is scaled down to
 # [, num_of_bins-1]. This function calculates the LUT.
