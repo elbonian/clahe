@@ -22,5 +22,5 @@ print(histogram)
 # Show visual histogram
 # Could have used the 'histogram' variable and displayed a bar chart, though.
 flattened_pxdata = im.getdata()
-plt.hist(flattened_pxdata, 2048)
+plt.hist(flattened_pxdata, 128)
 plt.show()

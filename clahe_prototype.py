@@ -31,7 +31,8 @@ def clahe(image, uiNrX, uiNrY, num_of_bins, cliplimit):
         ulClipLimit = int(cliplimit * (uiXSize * uiYSize) / num_of_bins)
         if ulClipLimit < 1:
             ulClipLimit = 1
-            # TODO: Finish this part?
+#    else:
+#        ulClipLimit = 1 << 14
     
     aLUT = make_lut(min_value, max_value, num_of_bins)
 
@@ -45,23 +46,27 @@ def clahe(image, uiNrX, uiNrY, num_of_bins, cliplimit):
     while uiY < uiNrY:
         uiX = 0
         while uiX < uiNrX:
+            #TODO add increment to pulHist
             pulHist = make_histogram(channel_data, pImPos, x_res, uiXSize, uiYSize, num_of_bins, aLUT)
-            clip_histogram(pulHist, num_of_bins, ulClipLimit)
+            print(pulHist)
+            pulHist = clip_histogram(pulHist, num_of_bins, ulClipLimit)
             map_histogram(pulHist, min_value, max_value, num_of_bins, ulNrPixels)
             uiX = uiX + 1
             pImPos = pImPos + uiXSize
         uiY = uiY + 1
         pImPos = pImPos + (uiYSize - 1) * x_res
     
+    print(pulHist)
+
     uiY = pImPos = uiSubY = uiSubX = uiYU = uiYB = uiXL = uiXR = 0
     while uiY <= uiNrY:
         if uiY == 0:
-            uiSubY = uiYSize >> 1
+            uiSubY = int(uiYSize) >> 1
             uiYU = uiNrY - 1
             uiYB = uiYU
         else:
             if uiY == uiNrY:
-                uiSubY = uiYSize >> 1
+                uiSubY = int(uiYSize) >> 1
                 uiYU = uiNrY - 1
                 uiYB = uiYU
             else:
@@ -71,12 +76,12 @@ def clahe(image, uiNrX, uiNrY, num_of_bins, cliplimit):
         uiX = 0
         while uiX <= uiNrX:
             if uiX == 0:
-                uiSubX = uiXSize >> 1
+                uiSubX = int(uiXSize) >> 1
                 uiXL = 0
                 uiXR = 0
             else:
                 if uiX == uiNrX:
-                    uiSubX = uiXSize >> 1
+                    uiSubX = int(uiXSize) >> 1
                     uiXL = uiNrX - 1
                     uiXR = uiXL
                 else:
@@ -87,7 +92,7 @@ def clahe(image, uiNrX, uiNrY, num_of_bins, cliplimit):
             pulRUPos = num_of_bins * (uiYU * uiNrX + uiXR)
             pulLBPos = num_of_bins * (uiYB * uiNrX + uiXL)
             pulRBPos = num_of_bins * (uiYB * uiNrX + uiXR)
-            #interpolate call
+            interpolate(channel_data, pulHist, x_res, pulLUPos, pulRUPos, pulLBPos, pulRBPos, uiSubX, uiSubY, aLUT)
             pImPos = pImPos + uiSubX
             uiX = uiX + 1
         pImPos = pImPos + (uiSubY - 1) * x_res
@@ -106,7 +111,7 @@ def make_lut(min_value, max_value, num_of_bins):
     return plut
 
 def make_histogram(channel_data, pos, uiXRes, uiSizeX, uiSizeY, uiNrGreylevels, pLookupTable):
-    histogram = [0] * uiNrGreylevels
+    histogram = [0] * uiNrGreylevels #TODO fix this, not entirely correct
     i = 0
     while i < uiSizeY:
         imagePointer = uiSizeX
@@ -185,7 +190,27 @@ def interpolate(pImage, pulHist, uiXRes, pulMapLUPos, pulMapRUPos, pulMapLBPos, 
             uiYCoef = uiYCoef + 1
             uiYInvCoef = uiYInvCoef - 1
             pImagePos = pImagePos + uiIncr
-    else: # TODO Finish
+    else:
+        #uiNum = uiNum >> 1
+        while uiNum:
+            uiNum = uiNum >> 1
+            uiShift = uiShift + 1
+        uiYCoef = 0
+        uiYInvCoef = uiYSize
+        while uiYCoef < uiYSize:
+            uiXCoef = 0
+            uiXInvCoef = uiXSize
+            while uiXCoef < uiXSize:
+                GreyValue = pLUT[pImagePos]
+                pImage[pImagePos] = int((uiYInvCoef * (uiXInvCoef * pulHist[GreyValue+pulMapLUPos] + uiXCoef * pulHist[GreyValue + pulMapRUPos])
+                + uiYCoef * (uiXInvCoef * pulHist[GreyValue + pulMapLBPos] + uiXCoef * pulHist[GreyValue + pulMapRBPos])) >> uiShift)
+                uiXCoef = uiXCoef + 1
+                uiXInvCoef = uiXInvCoef - 1
+            uiYCoef = uiYCoef + 1
+            uiYInvCoef = uiYInvCoef - 1
+            pImagePos = pImagePos + uiIncr
+    return pImage
+
 
 def map_histogram(pulHistogram, Min, Max, uiNrGreylevels, ulNrOfPixels):
     ulSum = 0
