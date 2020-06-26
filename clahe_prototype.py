@@ -165,6 +165,28 @@ def clip_histogram(pulHistogram, uiNrGreylevels, ulClipLimit):
     
     return pulHistogram
 
+def interpolate(pImage, pulHist, uiXRes, pulMapLUPos, pulMapRUPos, pulMapLBPos, pulMapRBPos, uiXSize, uiYSize, pLUT):
+    uiIncr = uiXRes - uiXSize
+    uiXCoef = uiYCoef = uiXInvCoef = uiYInvCoef = uiShift = GreyValue = pImagePos = 0
+    uiNum = uiXSize * uiYSize
+    if uiNum & (uiNum - 1):
+        uiYCoef = 0
+        uiYInvCoef = uiYSize
+        while uiYCoef < uiYSize:
+            uiXCoef = 0
+            uiXInvCoef = uiXSize
+            while uiXCoef < uiXSize:
+                GreyValue = pLUT[pImagePos]
+                pImage[pImagePos] = int((uiYInvCoef * (uiXInvCoef * pulHist[GreyValue+pulMapLUPos] + uiXCoef * pulHist[GreyValue + pulMapRUPos])
+                + uiYCoef * (uiXInvCoef * pulHist[GreyValue + pulMapLBPos] + uiXCoef * pulHist[GreyValue + pulMapRBPos])) / uiNum)
+                pImagePos = pImagePos + 1
+                uiXCoef = uiXCoef + 1
+                uiXInvCoef = uiXInvCoef - 1
+            uiYCoef = uiYCoef + 1
+            uiYInvCoef = uiYInvCoef - 1
+            pImagePos = pImagePos + uiIncr
+    else: # TODO Finish
+
 def map_histogram(pulHistogram, Min, Max, uiNrGreylevels, ulNrOfPixels):
     ulSum = 0
     fScale = (Max - Min)/ulNrOfPixels
