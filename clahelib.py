@@ -1,14 +1,16 @@
 from PIL import Image
 
-def clahe(image, blocRadius, bins, slope):
+def clahe(image, blockRadius, bins, slope):
+    dest_image = image.copy()
+    dest_pix = dest_image.load()
     blockRadius = int(blockRadius)
-    bins = int(bins)
+    bins = int(bins-1)
     slope = float(slope)
     box_x = box_y = 0
-    box_width = image.size[0]
-    box_height = image.size[1]
+    box_width, box_height = image.size
     boxXMax = box_x + box_width
     boxYMax = box_y + box_height
+    pix = image.load()
 
     y = box_y
     while y < boxYMax:
@@ -17,24 +19,24 @@ def clahe(image, blocRadius, bins, slope):
         h = yMax - yMin
 
         xMin0 = max(0, box_x - blockRadius)
-        xMax0 = max(box_width - 1, box_x + blockRadius)
+        xMax0 = min(box_width - 1, box_x + blockRadius)
 
         hist = [0] * (bins + 1)
         yi = yMin
         while yi < yMax:
             xi  = xMin0
             while xi < xMax0:
-                v = int(image.getpixel(xi, yi) / 255 * bins)
-                hist[v] = hist[v] + 1
+                val = roundPositive(pix[xi, yi] / 255 * bins)
+                hist[val] = hist[val] + 1
                 xi = xi + 1
             yi = yi + 1
         
         x = box_x
         while x < boxXMax:
-            v = int(image.getpixel(xi, yi) / 255 * bins)
+            v = roundPositive(pix[x, y] / 255 * bins)
             xMin = max(0, x - blockRadius)
             xMax = x + blockRadius + 1
-            w = min(box_width, xMax) - 1
+            w = min(box_width, xMax) - xMin
             n = h * w
 
             limit = int(slope * n / bins + 0.5)
@@ -43,21 +45,21 @@ def clahe(image, blocRadius, bins, slope):
                 xMin1 = xMin - 1
                 yi = yMin
                 while yi < yMax:
-                    v = int(image.getpixel(xMin1, yi) / 255 * bins)
-                    hist[v] = hist[v] - 1
+                    val = roundPositive(pix[xMin1, yi] / 255 * bins)
+                    hist[val] = hist[val] - 1
                     yi = yi + 1
             
             if xMax <= box_width:
                 xMax1 = xMax - 1
                 yi = yMin
                 while yi < yMax:
-                    v = int(image.getpixel(xMax1, yi) / 255 * bins)
-                    hist[v] = hist[v] + 1
+                    val = roundPositive(pix[xMax1, yi] / 255 * bins)
+                    hist[val] = hist[val] + 1
                     yi = yi + 1
             
-            #shallow copy suffices given we are dealing with ints
             clippedHist = hist.copy()
-            clippedEntries = clippedEntriesBefore = 0
+            clippedEntries = 0
+            clippedEntriesBefore = 0
             while True:
                 clippedEntriesBefore = clippedEntries
                 clippedEntries = 0
@@ -69,28 +71,50 @@ def clahe(image, blocRadius, bins, slope):
                         clippedHist[i] = limit
                     i = i + 1
                 
-                d = clippedEntries / (bins + 1)
-                m = clippedEntries % (bins + 1)
+                d = int(clippedEntries / (bins + 1))
+                m = int(clippedEntries % (bins + 1))
                 i = 0
                 while i <= bins:
                     clippedHist[i] = clippedHist[i] + d
                     i = i + 1
                 
                 if m!=0:
-                    s = bins / m
+                    s = int(bins / m)
                     i = 0
                     while i <= bins:
                         clippedHist[i] = clippedHist[i] + 1
                         i = i + s
-                if clippedEntries != clippedEntriesBefore:
+                if clippedEntries == clippedEntriesBefore:
                     break
-            
-            #build cdf
 
+            hMin = bins
+            i = 0
+            while i < hMin:
+                if clippedHist[i] != 0:
+                    hMin = i
+                i = i + 1
+
+            cdf = 0
+            i = hMin
+            while i <= v:
+                cdf = cdf + clippedHist[i]
+                i = i + 1
             
+            cdfMax = cdf
+            i = v + 1
+            while i <= bins:
+                cdfMax = cdfMax + clippedHist[i]
+                i = i + 1
+            
+            cdfMin = clippedHist[hMin]
+            col = roundPositive((cdf - cdfMin) / (cdfMax - cdfMin) * 255) 
+            
+            dest_pix[x, y] = col
             x = x + 1
         
-        
-        
-        
         y = y + 1
+
+    dest_image.save("images/output.png")
+
+def roundPositive(num):
+    return int(num + 0.5)

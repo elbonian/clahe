@@ -1,5 +1,5 @@
 from clahelib import clahe
 from PIL import Image
 
-im = Image.open("images/cell_gray16.tif")
-clahe(im, 127, 256, 2.0)
+im = Image.open("images/insight_gray8.tif")
+clahe(im, 63, 256, 3.0)

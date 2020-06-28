@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from PIL import Image
 
-im = Image.open("images/cell_gray16.tif")
+im = Image.open("images/snow_gray8.tif")
 print("Format:\t\t" + im.format)
 print("Size:\t\t" + str(im.size))
 print("Mode:\t\t" + im.mode)
@@ -22,5 +22,5 @@ print(histogram)
 # Show visual histogram
 # Could have used the 'histogram' variable and displayed a bar chart, though.
 flattened_pxdata = im.getdata()
-plt.hist(flattened_pxdata, 128)
+plt.hist(flattened_pxdata, 256)
 plt.show()
