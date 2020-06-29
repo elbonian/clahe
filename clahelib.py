@@ -14,6 +14,7 @@ def clahe(image, blockRadius, bins, slope):
 
     y = box_y
     while y < boxYMax:
+        print(y, "of", boxYMax)
         yMin = max(0, y - blockRadius)
         yMax = min(box_height, y + blockRadius + 1)
         h = yMax - yMin
@@ -26,14 +27,14 @@ def clahe(image, blockRadius, bins, slope):
         while yi < yMax:
             xi  = xMin0
             while xi < xMax0:
-                val = roundPositive(pix[xi, yi] / 255 * bins)
+                val = round(pix[xi, yi] / 255 * bins)
                 hist[val] = hist[val] + 1
                 xi = xi + 1
             yi = yi + 1
         
         x = box_x
         while x < boxXMax:
-            v = roundPositive(pix[x, y] / 255 * bins)
+            v = round(pix[x, y] / 255 * bins)
             xMin = max(0, x - blockRadius)
             xMax = x + blockRadius + 1
             w = min(box_width, xMax) - xMin
@@ -45,7 +46,7 @@ def clahe(image, blockRadius, bins, slope):
                 xMin1 = xMin - 1
                 yi = yMin
                 while yi < yMax:
-                    val = roundPositive(pix[xMin1, yi] / 255 * bins)
+                    val = round(pix[xMin1, yi] / 255 * bins)
                     hist[val] = hist[val] - 1
                     yi = yi + 1
             
@@ -53,7 +54,7 @@ def clahe(image, blockRadius, bins, slope):
                 xMax1 = xMax - 1
                 yi = yMin
                 while yi < yMax:
-                    val = roundPositive(pix[xMax1, yi] / 255 * bins)
+                    val = round(pix[xMax1, yi] / 255 * bins)
                     hist[val] = hist[val] + 1
                     yi = yi + 1
             
@@ -88,11 +89,23 @@ def clahe(image, blockRadius, bins, slope):
                     break
 
             hMin = bins
+            '''
             i = 0
             while i < hMin:
                 if clippedHist[i] != 0:
                     hMin = i
                 i = i + 1
+            '''
+            # CH using list in instead
+            if 0 not in clippedHist[0:hMin]: # slice
+                hMin = 1
+
+            # CH: using numpy instead
+            import numpy as np
+            clippedHist_a = np.array(clippedHist)
+            ss = clippedHist_a[0:hMin] # subset
+            if 0 not in ss:
+                hMin = 1
 
             cdf = 0
             i = hMin
@@ -107,14 +120,13 @@ def clahe(image, blockRadius, bins, slope):
                 i = i + 1
             
             cdfMin = clippedHist[hMin]
-            col = roundPositive((cdf - cdfMin) / (cdfMax - cdfMin) * 255) 
+            col = round((cdf - cdfMin) / (cdfMax - cdfMin) * 255) # use build-in round()!
             
             dest_pix[x, y] = col
             x = x + 1
         
         y = y + 1
 
+    print()
     dest_image.save("images/output.png")
 
-def roundPositive(num):
-    return int(num + 0.5)
