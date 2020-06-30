@@ -1,4 +1,4 @@
-from clahelib import clahe
+from clahe_par import clahe
 from PIL import Image
 import cProfile, pstats
 
