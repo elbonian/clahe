@@ -3,9 +3,10 @@ import numpy as np
 import timeit
 import collections
 
+
 def clahe(image, blockRadius, bins, slope):
 
-    #EL1
+    # EL1
     start_time = timeit.default_timer()
 
     dest_image = image.copy()
@@ -20,7 +21,7 @@ def clahe(image, blockRadius, bins, slope):
     np_pix = np.array(image)
     pix = image.load()
 
-    #EL1
+    # EL1
     elapsed = timeit.default_timer() - start_time
     print("EL1: " + str(elapsed))
 
@@ -35,18 +36,18 @@ def clahe(image, blockRadius, bins, slope):
 
         hist = histogram(xMin0, xMax0, yMin, yMax, pix, bins)
 
-        #EL2
+        # EL2
         start_time = timeit.default_timer()
         hist = histogram(xMin0, xMax0, yMin, yMax, pix, bins)
-        #EL2
+        # EL2
         elapsed = timeit.default_timer() - start_time
         print("EL2: " + str(elapsed))
 
         x = box_x
-        #EL3
+        # EL3
         start_time = timeit.default_timer()
         while x < boxXMax:
-            v = roundPositive(pix[x,y] / 255 * bins)
+            v = roundPositive(pix[x, y] / 255 * bins)
             xMin = max(0, x - blockRadius)
             xMax = x + blockRadius + 1
             w = min(box_width, xMax) - xMin
@@ -58,22 +59,22 @@ def clahe(image, blockRadius, bins, slope):
                 xMin1 = xMin - 1
                 yi = yMin
                 while yi < yMax:
-                    val = roundPositive(pix[xMin1,yi] / 255 * bins)
+                    val = roundPositive(pix[xMin1, yi] / 255 * bins)
                     hist[val] = hist[val] - 1
                     yi = yi + 1
-            
+
             if xMax <= box_width:
                 xMax1 = xMax - 1
                 yi = yMin
                 while yi < yMax:
-                    val = roundPositive(pix[xMax1,yi] / 255 * bins)
+                    val = roundPositive(pix[xMax1, yi] / 255 * bins)
                     hist[val] = hist[val] + 1
                     yi = yi + 1
-            
+
             clippedHist = hist.copy()
             clippedEntries = 0
             clippedEntriesBefore = 0
-            #EL4
+            # EL4
             start_time = timeit.default_timer()
             while True:
                 clippedEntriesBefore = clippedEntries
@@ -81,19 +82,19 @@ def clahe(image, blockRadius, bins, slope):
                 i = 0
                 while i <= bins:
                     d = clippedHist[i] - limit
-                    if d>0:
+                    if d > 0:
                         clippedEntries = clippedEntries + d
                         clippedHist[i] = limit
                     i = i + 1
-                
+
                 d = int(clippedEntries / (bins + 1))
                 m = int(clippedEntries % (bins + 1))
                 i = 0
                 while i <= bins:
                     clippedHist[i] = clippedHist[i] + d
                     i = i + 1
-                
-                if m!=0:
+
+                if m != 0:
                     s = int(bins / m)
                     i = 0
                     while i <= bins:
@@ -101,65 +102,75 @@ def clahe(image, blockRadius, bins, slope):
                         i = i + s
                 if clippedEntries == clippedEntriesBefore:
                     break
-            #EL4
+            # EL4
             elapsed = timeit.default_timer() - start_time
-            #print("EL4: " + str(elapsed))
+            # print("EL4: " + str(elapsed))
 
-            #EL5
+            # EL5
             start_time = timeit.default_timer()
-            hMin = bins
-            i = 0
-            while i < hMin:
-                if clippedHist[i] != 0:
-                    hMin = i
-                i = i + 1
 
-            cdf = 0
-            i = hMin
-            while i <= v:
-                cdf = cdf + clippedHist[i]
-                i = i + 1
-            
-            cdfMax = cdf
-            i = v + 1
-            while i <= bins:
-                cdfMax = cdfMax + clippedHist[i]
-                i = i + 1
-            
-            cdfMin = clippedHist[hMin]
-            col = roundPositive((cdf - cdfMin) / (cdfMax - cdfMin) * 255) 
-            
+            cdf, cdfMax, cdfMin = cdf_values(v, clippedHist, bins)
+            col = roundPositive((cdf - cdfMin) / (cdfMax - cdfMin) * 255)
+
             dest_pix[x, y] = col
             x = x + 1
-            
-            #EL5
+
+            # EL5
             elapsed = timeit.default_timer() - start_time
-            #print("EL5: " + str(elapsed))
-        
+            # print("EL5: " + str(elapsed))
+
         y = y + 1
-        #EL3
+        # EL3
         elapsed = timeit.default_timer() - start_time
         print("EL3: " + str(elapsed))
 
-    #EL6
+    # EL6
     start_time = timeit.default_timer()
     hMin = bins
     dest_image.save("images/output.png")
-    #EL6
+    # EL6
     elapsed = timeit.default_timer() - start_time
     print("EL6: " + str(elapsed))
+
 
 def roundPositive(num):
     return int(num + 0.5)
 
-def histogram(xMin0, xMax0, yMin, yMax, pix, bins):
+
+def histogram(xMin, xMax, yMin, yMax, pixels, bins):
     hist = [0] * (bins + 1)
     yi = yMin
     while yi < yMax:
-        xi  = xMin0
-        while xi < xMax0:
-            val = roundPositive(pix[xi,yi] / 255 * bins)
+        xi = xMin
+        while xi < xMax:
+            val = roundPositive(pixels[xi, yi] / 255 * bins)
             hist[val] = hist[val] + 1
             xi = xi + 1
         yi = yi + 1
     return hist
+
+
+def cdf_values(v, clippedHist, bins):
+    hMin = bins
+    
+    i = 0
+    while i < hMin:
+        if clippedHist[i] != 0:
+            hMin = i
+        i = i + 1
+
+    cdf = 0
+    i = hMin
+    while i <= v:
+        cdf = cdf + clippedHist[i]
+        i = i + 1
+            
+    cdfMax = cdf
+    i = v + 1
+    while i <= bins:
+        cdfMax = cdfMax + clippedHist[i]
+        i = i + 1
+            
+    cdfMin = clippedHist[hMin]
+
+    return cdf, cdfMax, cdfMin
