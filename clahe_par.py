@@ -2,7 +2,7 @@ from PIL import Image
 import numpy as np
 import timeit
 import collections
-
+import multiprocessing as mp
 
 def clahe(image, blockRadius, bins, slope):
 
@@ -16,15 +16,31 @@ def clahe(image, blockRadius, bins, slope):
     boxXMax = box_x + box_width
     boxYMax = box_y + box_height
     np_pix = np.array(image)
-    pix = image.load()
+    pix = list(image.load())
 
     y = box_y
-    while y < boxYMax:
-        clahe_row(pix, dest_pix, y, blockRadius, bins, slope, box_width, box_height, box_x, boxXMax)
-        y = y + 1
+#    clahe_rows(pix, dest_pix, y, boxYMax, blockRadius, bins, slope, box_width, box_height, box_x, boxXMax)
+#    while y < boxYMax:
+#        clahe_row(pix, dest_pix, y, blockRadius, bins, slope, box_width, box_height, box_x, boxXMax)
+#        y = y + 1
+
+    jobs = []
+    
+    p = mp.Process(target=job1, args=(pix, dest_pix, y, boxYMax, blockRadius, bins, slope, box_width, box_height, box_x, boxXMax,))
+    jobs.append(p)
+    p.start()
+    p.join()
 
     dest_image.save("images/output.png")
 
+def job1(pix, dest_pix, y, boxYMax, blockRadius, bins, slope, box_width, box_height, box_x, boxXMax):
+    clahe_rows(pix, dest_pix, y, boxYMax, blockRadius, bins, slope, box_width, box_height, box_x, boxXMax)
+
+def clahe_rows(pix, dest_pix, y_start, y_end, blockRadius, bins, slope, box_width, box_height, box_x, boxXMax):
+    y = y_start
+    while y < y_end:
+        clahe_row(pix, dest_pix, y, blockRadius, bins, slope, box_width, box_height, box_x, boxXMax)
+        y = y + 1
 
 def roundPositive(num):
     return int(num + 0.5)
