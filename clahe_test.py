@@ -2,6 +2,7 @@ from clahe_par import clahe
 from PIL import Image
 import cProfile, pstats
 
+clahe(im, 127, 256, 3.0)
 pr = cProfile.Profile()
 pr.enable()
 
