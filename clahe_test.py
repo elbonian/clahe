@@ -2,12 +2,11 @@ from clahe_par import clahe
 from PIL import Image
 import cProfile, pstats
 
-clahe(im, 127, 256, 3.0)
 pr = cProfile.Profile()
 pr.enable()
 
 im = Image.open("images/snow_gray8_small.tif")
-new_image = clahe(im, 127, 64, 3.0)
+new_image = clahe(im, 127, 128, 3.0)
 new_image.save("images/output.png")
 
 pr.disable()
