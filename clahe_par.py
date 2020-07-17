@@ -1,12 +1,8 @@
 from PIL import Image
-import numpy as np
-import timeit
-import collections
-import multiprocessing as mp
 
-def clahe_bw(image, blockRadius, bins, slope):
+def clahe_bw(image, blockSize, bins, slope):
 
-    blockRadius = int((blockRadius-1)/2)
+    blockRadius = int((blockSize-1)/2)
     bins = int(bins-1)
     slope = float(slope)
 
@@ -14,9 +10,7 @@ def clahe_bw(image, blockRadius, bins, slope):
         image = image.convert("L")
 
     color_range = 255
-    if image.mode == "L":
-        color_range = 255
-    elif image.mode == "I;16":
+    if image.mode == "I;16":
         color_range = 65535
     
     pix = image.load()
@@ -34,6 +28,37 @@ def clahe_bw(image, blockRadius, bins, slope):
             new_pix[x, y] = val
             x = x + 1
         y = y + 1
+
+    return 0, new_image
+
+def clahe_color(image, blockSize, bins, slope):
+
+    blockRadius = int((blockSize-1)/2)
+    bins = int(bins-1)
+    slope = float(slope)
+    
+    orig_mode = image.mode
+
+    image = image.convert("HSV")
+    color_range = 255
+    
+    pix = image.load()
+    width, height = image.size
+    new_image = image.copy()
+    new_pix = new_image.load()
+
+    dest_rows = clahe_rows(pix, color_range, 0, width, height, blockRadius, bins, slope)
+
+    y = 0
+    while y<height:
+        x = 0
+        while x<width:
+            val = dest_rows[y][x]
+            new_pix[x, y] = (new_pix[x,y][0], new_pix[x,y][1], val)
+            x = x + 1
+        y = y + 1
+
+    new_image = new_image.convert(orig_mode)
 
     return 0, new_image
 
@@ -58,7 +83,7 @@ def clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope):
 
     x = 0
     while x < width:
-        v = roundPositive(pix[x, y] / color_range * bins)
+        v = roundPositive(get_pix_value(pix[x, y]) / color_range * bins)
         xMin = max(0, x - blockRadius)
         xMax = x + blockRadius + 1
         w = min(width, xMax) - xMin
@@ -70,7 +95,7 @@ def clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope):
             xMin1 = xMin - 1
             yi = yMin
             while yi < yMax:
-                val = roundPositive(pix[xMin1, yi] / color_range * bins)
+                val = roundPositive(get_pix_value(pix[xMin1, yi]) / color_range * bins)
                 hist[val] = hist[val] - 1
                 yi = yi + 1
 
@@ -78,7 +103,7 @@ def clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope):
             xMax1 = xMax - 1
             yi = yMin
             while yi < yMax:
-                val = roundPositive(pix[xMax1, yi] / color_range * bins)
+                val = roundPositive(get_pix_value(pix[xMax1, yi]) / color_range * bins)
                 hist[val] = hist[val] + 1
                 yi = yi + 1
 
@@ -95,13 +120,19 @@ def clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope):
 def roundPositive(num):
     return int(num + 0.5)
 
+def get_pix_value(v):
+    if type(v) is tuple:
+        return v[2]
+    else:
+        return v
+
 def histogram(xMin, xMax, yMin, yMax, pixels, color_range, bins):
     hist = [0] * (bins + 1)
     yi = yMin
     while yi < yMax:
         xi = xMin
         while xi < xMax:
-            val = roundPositive(pixels[xi, yi] / color_range * bins)
+            val = roundPositive(get_pix_value(pixels[xi, yi]) / color_range * bins)
             hist[val] = hist[val] + 1
             xi = xi + 1
         yi = yi + 1
