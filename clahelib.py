@@ -93,17 +93,54 @@ def clahe_color(image, blockSize, bins, slope):
 
     return 0, new_image
 
+#
+# CH: using a worker Pool for multiprocessing
+#
+
+from multiprocessing import Pool, freeze_support, current_process
+#import dill as pickle
 """
 clahe_rows() executes the CLAHE algorithm on all rows.
     It is a candidate for parallelization given no data dependency among clahe_row calls!
 """
+def call_clahe_row(row_tuple):
+    print(current_process()) # id for current process
+    print(row_tuple) # "args" for clahe_row()
+    #r =  clahe_row(*row_tuple) # * means unroll args from tuple and pretend they are normal args
+    return 123 # would return r
+
+
 def clahe_rows(pix, color_range, y_start, width, height, blockRadius, bins, slope):
     y = y_start
-    dest_rows = []
+    row_list = []
     while y < height:
-        dest_rows.append(clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope))
+        #dest_rows.append(clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope))
+        # make a tuple from the args that the functions need to get
+        row_list.append((pix, color_range, y, width, height, blockRadius, bins, slope)) 
         y = y + 1
+
+    pool = Pool(processes=None, maxtasksperchild=1) # processes=None means use all available cores
+
+    try:
+        # call_clahe_row is called with its args in form of a tuple
+        dest_rows = pool.map(call_clahe_row, row_list)
+    except Exception as e:
+        print(e)
+    else:
+        pool.close()
+        pool.terminate()
+
+    #print(dest_rows) # contains list of results
     return dest_rows
+
+# CH MAIN
+if __name__ == '__main__':
+    freeze_support() # needed on Windows
+    dest_list = clahe_rows(1,2,3,4,5,6,7,8) # will spawn 2 processes (5-3) for processing and get a list of 2 processed objects
+    print(dest_list)
+
+
+
 
 """
 clahe_row() executes the CLAHE algorithm on a single row. 
