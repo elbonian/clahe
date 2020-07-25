@@ -11,12 +11,20 @@ image       is a Pillow Image
 blockSize   is the size of the local region around a pixel for which the histogram is equalized.
             This size should be larger than the size of features to be preserved.
 bins        is the number of histogram bins used for histogram equalization.
-             The number of histogram bins should be smaller than the number of pixels in a block.
+            The number of histogram bins should be smaller than the number of pixels in a block.
 slope       limits the contrast stretch in the intensity transfer function.
+processes   sets the number of processes to subdivide tasks across CPU cores.
+            A value of 1 is essentially a serial version of the algorithm.
+            Not setting this value or setting it to 0 will make the algorithm set a value of its choosing.
 """
 def clahe_bw(image, blockSize, bins, slope, processes=0):
 
-    ray.init()
+    # We initialize ray here, the parallelization library.
+    # The parameter passed to the function makes ray do nothing
+    # if already initialized outside of this function.
+    ray.init(ignore_reinit_error=True)
+
+    # Auto-calculate the number of processes needed, if requested.
     if processes == 0:
         processes = multiprocessing.cpu_count()-1
     if processes == 0:
@@ -36,14 +44,14 @@ def clahe_bw(image, blockSize, bins, slope, processes=0):
     if image.mode == "I;16":
         color_range = 65535
     
-    # Load original image, destination, and size
-    width, height = image.size
+    # Load original image, destination, and size.
     new_image = image.copy()
     new_pix = new_image.load()
 
-    dest_rows = do_clahe(image, color_range, width, height, blockRadius, bins, slope, processes)
+    dest_rows = do_clahe(image, color_range, blockRadius, bins, slope, processes)
 
     # Place the CLAHE pixel values into the new image
+    width, height = image.size
     y = 0
     while y<height:
         x = 0
@@ -55,28 +63,6 @@ def clahe_bw(image, blockSize, bins, slope, processes=0):
 
     return 0, new_image
 
-def do_clahe(image, color_range, width, height, blockRadius, bins, slope, processes):
-    height_increment = round_positive(height/processes)
-    height_pointer = 0
-    result_rows = []
-    while height_pointer < height:
-        if height_pointer+height_increment > height:
-            stop_row = height
-        else:
-            stop_row = height_pointer+height_increment
-        result_rows.append(clahe_rows.remote(image, color_range, height_pointer, width, stop_row, blockRadius, bins, slope))
-        height_pointer = height_pointer + height_increment
-
-    dest_rows = []
-    for result in result_rows:
-        dest_rows1 = ray.get(result)
-        length = len(dest_rows1)
-        i = 0
-        while i < length:
-            dest_rows.append(dest_rows1[i])
-            i = i + 1
-    return dest_rows
-
 """
 clahe_color() function calculates CLAHE in color.
     Images passed are converted to the HSV color space internally.
@@ -84,7 +70,12 @@ clahe_color() function calculates CLAHE in color.
 """
 def clahe_color(image, blockSize, bins, slope, processes=0):
 
-    ray.init()
+    # We initialize ray here, the parallelization library.
+    # The parameter passed to the function makes ray do nothing
+    # if already initialized outside of this function.
+    ray.init(ignore_reinit_error=True)
+
+    # Auto-calculate the number of processes needed, if requested.
     if processes == 0:
         processes = multiprocessing.cpu_count()-1
     if processes == 0:
@@ -103,14 +94,14 @@ def clahe_color(image, blockSize, bins, slope, processes=0):
     color_range = 255
     
     # Load original image, destination, and sizes
-    pix = image.load()
-    width, height = image.size
     new_image = image.copy()
     new_pix = new_image.load()
 
-    dest_rows = do_clahe(image, color_range, width, height, blockRadius, bins, slope, processes)
+    # Execute the CLAHE algorithm
+    dest_rows = do_clahe(image, color_range, blockRadius, bins, slope, processes)
 
     # Place the CLAHE pixel values into the new image
+    width, height = image.size
     y = 0
     while y<height:
         x = 0
@@ -127,18 +118,72 @@ def clahe_color(image, blockSize, bins, slope, processes=0):
     return 0, new_image
 
 """
-clahe_rows() executes the CLAHE algorithm on all rows.
-    It is a candidate for parallelization given no data dependency among clahe_row calls!
+do_clahe() executes the CLAHE algorithm on an image in a parallelized manner.
+    It packages work so it can be executed by the number of processes passed as parameter.
+    This function is heaviliy commented to understand the use of ray.
+"""
+def do_clahe(image, color_range, blockRadius, bins, slope, processes):
+    
+    # Start by calculating the increment in rows for each successive work package
+    height = image.size[1]
+    # Packages will be equal in size
+    height_increment = round_positive(height/processes)
+
+    # We start with row 0
+    height_pointer = 0
+
+    # This variable captures the results from every job
+    result_rows = []
+
+    # Package creation and dispatching to processes happens here
+    while height_pointer < height:
+
+        # This is needed to ensure we don't create a last package that calculates
+        # the CLAHE outside of image boundaries (at the bottom of the image).
+        if height_pointer+height_increment > height:
+            stop_row = height
+        # In the general case, we just package based on the row from where
+        # we left off plus the height offset per package.
+        else:
+            stop_row = height_pointer+height_increment
+
+        # We execute a process with its work package
+        result_rows.append(clahe_rows.remote(image, color_range, height_pointer, stop_row, blockRadius, bins, slope))
+        # We keep going
+        height_pointer = height_pointer + height_increment
+
+    # This variable contains the CLAHE image values
+    # Note that this variable is built from results from each process 
+    dest_rows = []
+    # For each result from each process...
+    for result in result_rows:
+        # We get the CLAHE rows calculated
+        # The ray.get() method retrieves data and does a join() BTW
+        intermediate_row_result = ray.get(result)
+        # Merge the results into dest_rows
+        length = len(intermediate_row_result)
+        i = 0
+        while i < length:
+            dest_rows.append(intermediate_row_result[i])
+            i = i + 1
+    return dest_rows
+
+"""
+clahe_rows() executes the CLAHE algorithm on chosen rows.
+    This function is a 'job' for processes when parallelizing.
+    Of particular interest is the @ray.remote annotation.
+    It denotes this function can be parallelized by ray.
 """
 @ray.remote
-def clahe_rows(image, color_range, y_start, width, height, blockRadius, bins, slope):
+def clahe_rows(image, color_range, start_row, stop_row, blockRadius, bins, slope):
     
+    width, height = image.size
     pix = image.load()
     
-    y = y_start
+    y = start_row
     dest_rows = []
-    while y < height:
-        dest_rows.append(clahe_row(pix, color_range, y, width, image.size[1], blockRadius, bins, slope))#height, blockRadius, bins, slope))
+    while y < stop_row:
+        dest_rows.append(clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope))
         y = y + 1
     return dest_rows
 
