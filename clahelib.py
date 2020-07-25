@@ -20,8 +20,8 @@ processes   sets the number of processes to subdivide tasks across CPU cores.
 def clahe_bw(image, blockSize, bins, slope, processes=0):
 
     # We initialize ray here, the parallelization library.
-    # The parameter passed to the function makes ray do nothing
-    # if already initialized outside of this function.
+    # The parameter passed to ray.init() makes this function do nothing
+    # if ray has already been initialized.
     ray.init(ignore_reinit_error=True)
 
     # Auto-calculate the number of processes needed, if requested.
@@ -71,8 +71,8 @@ clahe_color() function calculates CLAHE in color.
 def clahe_color(image, blockSize, bins, slope, processes=0):
 
     # We initialize ray here, the parallelization library.
-    # The parameter passed to the function makes ray do nothing
-    # if already initialized outside of this function.
+    # The parameter passed to ray.init() makes this function do nothing
+    # if ray has already been initialized.
     ray.init(ignore_reinit_error=True)
 
     # Auto-calculate the number of processes needed, if requested.
