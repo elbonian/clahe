@@ -1,3 +1,5 @@
 # CLAHE Library
 
-The intent is to develop a Python library that can perform the Contrast Limited Adaptive Histogram Equalization (CLAHE) algorithm on image types supported by PIL, including 16 bpp grayscale images.
+A Python library that implements a parallelized version of the Contrast Limited Adaptive Histogram Equalization (CLAHE) algorithm on image types supported by PIL, including 16 bpp grayscale and color images. Please check out clahe_test.py to understand how to call the library.
+
+Dependencies are Pillow and ray.
