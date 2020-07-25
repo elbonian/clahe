@@ -39,7 +39,21 @@ def clahe_bw(image, blockSize, bins, slope, processes=1):
     new_image = image.copy()
     new_pix = new_image.load()
 
+    dest_rows = do_clahe(image, color_range, width, height, blockRadius, bins, slope, processes)
 
+    # Place the CLAHE pixel values into the new image
+    y = 0
+    while y<height:
+        x = 0
+        while x<width:
+            val = dest_rows[y][x]
+            new_pix[x, y] = val
+            x = x + 1
+        y = y + 1
+
+    return 0, new_image
+
+def do_clahe(image, color_range, width, height, blockRadius, bins, slope, processes):
     height_increment = round_positive(height/processes)
     height_pointer = 0
     result_rows = []
@@ -59,26 +73,18 @@ def clahe_bw(image, blockSize, bins, slope, processes=1):
         while i < length:
             dest_rows.append(dest_rows1[i])
             i = i + 1
-
-
-    # Place the CLAHE pixel values into the new image
-    y = 0
-    while y<height:
-        x = 0
-        while x<width:
-            val = dest_rows[y][x]
-            new_pix[x, y] = val
-            x = x + 1
-        y = y + 1
-
-    return 0, new_image
+    return dest_rows
 
 """
 clahe_color() function calculates CLAHE in color.
     Images passed are converted to the HSV color space internally.
     Parameters are the same as for black and white version above.
 """
-def clahe_color(image, blockSize, bins, slope):
+def clahe_color(image, blockSize, bins, slope, processes):
+
+    ray.init()
+    if processes == 0:
+        processes = multiprocessing.cpu_count()
 
     # Turn block size into internal block radius
     blockRadius = int((blockSize-1)/2)
@@ -98,8 +104,7 @@ def clahe_color(image, blockSize, bins, slope):
     new_image = image.copy()
     new_pix = new_image.load()
 
-
-
+    dest_rows = do_clahe(image, color_range, width, height, blockRadius, bins, slope, processes)
 
     # Place the CLAHE pixel values into the new image
     y = 0
@@ -129,7 +134,7 @@ def clahe_rows(image, color_range, y_start, width, height, blockRadius, bins, sl
     y = y_start
     dest_rows = []
     while y < height:
-        dest_rows.append(clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope))
+        dest_rows.append(clahe_row(pix, color_range, y, width, image.size[1], blockRadius, bins, slope))#height, blockRadius, bins, slope))
         y = y + 1
     return dest_rows
 

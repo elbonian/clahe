@@ -5,8 +5,8 @@ import cProfile, pstats
 pr = cProfile.Profile()
 pr.enable()
 
-im = Image.open("images/snow_gray8_small.tif")
-code, new_image = clahe_bw(im, 63, 256, 3.0, 8)
+im = Image.open("images/insight_gray8.tif")
+code, new_image = clahe_bw(im, 63, 256, 3.0, 0)
 if code == 0:
     new_image.save("images/output.png")
 
