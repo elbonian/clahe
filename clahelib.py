@@ -7,11 +7,11 @@ clahe_bw() function calculates CLAHE in black and white.
     It supports 8 bpp and 16 bpp grayscale images.
     If image passed is not of the supported type, it will be converted to 8 bpp grayscale.
 
-image       is a Pillow Image
+image       is the input Pillow Image
 blockSize   is the size of the local region around a pixel for which the histogram is equalized.
             This size should be larger than the size of features to be preserved.
 bins        is the number of histogram bins used for histogram equalization.
-            The number of histogram bins should be smaller than the number of pixels in a block.
+            The number of histogram bins should be smaller than the number of pixels in a block (blockSize^2).
 slope       limits the contrast stretch in the intensity transfer function.
 processes   sets the number of processes to subdivide tasks across CPU cores.
             A value of 1 is essentially a serial version of the algorithm.
@@ -65,7 +65,7 @@ def clahe_bw(image, blockSize, bins, slope, processes=0):
 
 """
 clahe_color() function calculates CLAHE in color.
-    Images passed are converted to the HSV color space internally.
+    Images passed are converted to the HSV color space internally but returned in original color space.
     Parameters are the same as for black and white version above.
 """
 def clahe_color(image, blockSize, bins, slope, processes=0):
