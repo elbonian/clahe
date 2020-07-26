@@ -61,7 +61,7 @@ def clahe_bw(image, blockSize, bins, slope, processes=0):
             x = x + 1
         y = y + 1
 
-    return 0, new_image
+    return new_image
 
 """
 clahe_color() function calculates CLAHE in color.
@@ -115,7 +115,7 @@ def clahe_color(image, blockSize, bins, slope, processes=0):
     # Return image in the original mode
     new_image = new_image.convert(orig_mode)
 
-    return 0, new_image
+    return new_image
 
 """
 do_clahe() executes the CLAHE algorithm on an image in a parallelized manner.

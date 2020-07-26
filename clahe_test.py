@@ -3,16 +3,22 @@ from PIL import Image
 import cProfile, pstats
 import ray
 
+# Initialize ray
 ray.init()
 
+# These 2 lines are only needed if algorithm needs to be profiled.
 pr = cProfile.Profile()
 pr.enable()
 
+""" Invocation example
+This might take anywhere from seconds to minutes
+depending on computer type, image, and parameters passed.
+"""
 im = Image.open("images/timpanogos_small.tif")
-code, new_image = clahe_color(im, 63, 256, 2.5, 5)
-if code == 0:
-    new_image.save("images/output.png")
+new_image = clahe_color(im, 63, 256, 2.5)
+new_image.save("images/output.png")
 
+# These 4 lines are only needed if algorithm needs to be profiled.
 pr.disable()
 ps = pstats.Stats(pr)
 ps.strip_dirs()
