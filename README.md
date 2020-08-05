@@ -55,3 +55,7 @@ A typical way of calling the clahe functions would be:
     new_image.save("images/output.png")
 
 Note that the process parameter hasn't been set in the example above and will use a value of 0.
+
+# Known issues
+
+Some parameters to the clahe functions are not range-checked. This is done on purpose in case users of the library think of creative uses for those parameters; for instance as a result of entering unusual values. 
