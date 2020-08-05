@@ -6,16 +6,16 @@ The repo contains two .py files:
 1) clahelib.py: Main library code.
 2) clahe_test.py: An example of how to call the library and sample profiler code. The purpose of the profiler code is to measure library speed under different conditions such as number of processes used and algorithm parameters.
 
-The images folder contains sample images along with CLAHE'd versions of the same. The code within clahe_test.py by default uses one of the images within this folder.
+The images folder contains sample images along with CLAHE'd versions of the same. The code within clahe_test.py uses by default one of the images within this folder.
 
 # Requirements
 
-The code has been tested on both Windows 10 64-bit and Linux Mint 19 64-bit, both with Python 3.8. The library needs Pillow 7.2.0 for image processing, and ray 0.9.0 for parallelization purposes. The library might work with slightly older or newer versions of Pillow and ray, but your mileage might vary. As of 8/5/2020, the two following commands installed versions of the dependencies that worked harmoniously with the library:
+The code has been tested on both Windows 10 64-bit and Linux Mint 19 64-bit, both with Python 3.8. The library needs Pillow 7.2.0 for image processing, and ray 0.9.0 for parallelization purposes. The library might work with slightly older or newer versions of Pillow and ray; your mileage might vary. As of 8/5/2020, the two following commands installed versions of the dependencies that worked harmoniously with the library:
 
     pip install Pillow
     pip install ray
 
-If you'd like to run clahe_test.py you will need to make sure you have cProfile and pstats installed as well. I am aware, however, they are typically bundled with newer Python installations.
+If you'd like to run clahe_test.py you will need to make sure you have cProfile and pstats installed as well. I am aware, however, they are typically bundled with the newer Python versions.
 
 # Installation
 
@@ -31,12 +31,12 @@ You then have the option of calling clahe_color or clahe_bw depending on how you
 
 Both methods accept the following parameters:
 
-    clahe_bw(image, blockSize, bins, slope, processes=0)
-    clahe_color(image, blockSize, bins, slope, processes=0)
+    clahe_bw(image, blocksize, bins, slope, processes=0)
+    clahe_color(image, blocksize, bins, slope, processes=0)
     
 * image is the Pillow image you would like to run CLAHE on.
-* blockSize is the size of the local region around a pixel for which the histogram is equalized. This size should be larger than the size of features to be preserved in the image. If unsure, try (width of image)/4.
-* bins is the number of histogram bins used for histogram equalization. The number of histogram bins should be smaller than the number of pixels in a block (blockSize^2). If unsure, try 256.
+* blocksize is the size of the local region around a pixel for which the histogram is equalized. This size should be larger than the size of features to be preserved in the image. If unsure, try (width of image)/4.
+* bins is the number of histogram bins used for histogram equalization. The number of histogram bins should be smaller than the number of pixels in a block (blocksize^2). If unsure, try 256.
 * slope limits the contrast stretch in the intensity transfer function. A value of 1.0 will result in the original image. If unsure, try 2.0.
 * processes (optional) sets the number of processes to subdivide tasks across CPU cores. A value of 1 is essentially a serial version of the algorithm. Not setting this parameter or setting it to 0 will use (#cpu_cores - 1) processes. If you are running the algorithm on a CPU with one core and you set processes to 0, the algorithm will only create one process.
 
@@ -58,4 +58,10 @@ Note that the process parameter hasn't been set in the example above and will us
 
 # Known issues
 
-Some parameters to the clahe functions are not range-checked. This is done on purpose in case users of the library think of creative uses for those parameters; for instance as a result of entering unusual values. 
+The blocksize, bins, and slope parameters to the clahe functions are not range-checked. This is done on purpose in case users of the library think of creative uses for those parameters.
+
+The performance of the code might still be improvable. I tried using numpy and other Python-friendly techniques but, apparently, the code I have today is the best performing code I could develop with the time that I had.
+
+# Acknowledgments
+
+Thanks to Chris Harding for reviewing the code and providing great comments.
