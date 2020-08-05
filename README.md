@@ -39,3 +39,19 @@ Both methods accept the following parameters:
 * bins is the number of histogram bins used for histogram equalization. The number of histogram bins should be smaller than the number of pixels in a block (blockSize^2). If unsure, try 256.
 * slope limits the contrast stretch in the intensity transfer function. A value of 1.0 will result in the original image. If unsure, try 2.0.
 * processes (optional) sets the number of processes to subdivide tasks across CPU cores. A value of 1 is essentially a serial version of the algorithm. Not setting this parameter or setting it to 0 will use (#cpu_cores - 1) processes. If you are running the algorithm on a CPU with one core and you set processes to 0, the algorithm will only create one process.
+
+# Code examples
+
+If you would like to initialize ray before you call clahe_bw or clahe_color, you can do so by adding this line somewhere prior to the first call to the two clahe functions:
+
+    ray.init()
+    
+Note that this is not needed, however, as the clahe functions will try to initialize it as well. If ray has already been initialized, they will ignore the request.
+
+A typical way of calling the clahe functions would be:
+
+    im = Image.open("images/timpanogos_small.tif")
+    new_image = clahe_color(im, 63, 256, 2.5)
+    new_image.save("images/output.png")
+
+Note that the process parameter hasn't been set in the example above and will use a value of 0.
