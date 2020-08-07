@@ -35,9 +35,9 @@ Both methods accept the following parameters:
     clahe_color(image, blocksize, bins, slope, processes=0)
     
 * image is the Pillow image you would like to run CLAHE on.
-* blocksize is the size of the local region around a pixel for which the histogram is equalized. This size should be larger than the size of features to be preserved in the image. If unsure, try (width of image)/4.
-* bins is the number of histogram bins used for histogram equalization. The number of histogram bins should be smaller than the number of pixels in a block (blocksize^2). If unsure, try 256.
-* slope limits the contrast stretch in the intensity transfer function. A value of 1.0 will result in the original image. If unsure, try 2.0.
+* blocksize is the size of the local region around a pixel for which the histogram is equalized. This size should be larger than the size of features to be preserved in the image. If unsure, try (width of image)/4 or pass a 0 value for auto-calculation.
+* bins is the number of histogram bins used for histogram equalization. The number of histogram bins should be smaller than the number of pixels in a block (blocksize^2). If unsure, try 256 or pass a 0 value for auto-calculation.
+* slope limits the contrast stretch in the intensity transfer function. A value of 1.0 will result in the original image. If unsure, try 2.0 or pass a 0 value for auto-calculation.
 * processes (optional) sets the number of processes to subdivide tasks across CPU cores. A value of 1 is essentially a serial version of the algorithm. Not setting this parameter or setting it to 0 will use (#cpu_cores - 1) processes. If you are running the algorithm on a CPU with one core and you set processes to 0, the algorithm will only create one process.
 
 # Code examples
