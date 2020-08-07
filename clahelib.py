@@ -65,7 +65,16 @@ def clahe_bw(image, blocksize, bins, slope, processes=0):
 """
 clahe_color() function calculates CLAHE in color.
     Images passed are converted to the HSV color space internally but returned in original color space.
-    Parameters are the same as for black and white version above.
+
+image       is the input Pillow Image
+blocksize   is the size of the local region around a pixel for which the histogram is equalized.
+            This size should be larger than the size of features to be preserved.
+bins        is the number of histogram bins used for histogram equalization.
+            The number of histogram bins should be smaller than the number of pixels in a block (blocksize^2).
+slope       limits the contrast stretch in the intensity transfer function.
+processes   sets the number of processes to subdivide tasks across CPU cores.
+            A value of 1 is essentially a serial version of the algorithm.
+            Not setting this value or setting it to 0 will make the algorithm set a value of its choosing.
 """
 def clahe_color(image, blocksize, bins, slope, processes=0):
 
