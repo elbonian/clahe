@@ -25,15 +25,12 @@ def clahe_bw(image, blocksize, bins, slope, processes=0):
     # if ray has already been initialized.
     ray.init(ignore_reinit_error=True)
 
-    # Auto-calculate the number of processes needed, if requested.
-    if processes == 0:
-        processes = multiprocessing.cpu_count()-1
-    if processes == 0:
-        processes = 1
+    # Check processes input
+    processes = get_processnumber(processes)
 
     # Turn block size into internal block radius
-    blockRadius = get_blockradius(image, blocksize)
-    slope = float(slope)
+    blockradius = get_blockradius(image, blocksize)
+    slope = get_slope(slope)
 
     # Convert image to 8 bpp grayscale if needed
     if image.mode != "L" or image.mode != "I:16":
@@ -50,7 +47,7 @@ def clahe_bw(image, blocksize, bins, slope, processes=0):
     new_image = image.copy()
     new_pix = new_image.load()
 
-    dest_rows = do_clahe(image, color_range, blockRadius, bins, slope, processes)
+    dest_rows = do_clahe(image, color_range, blockradius, bins, slope, processes)
 
     # Place the CLAHE pixel values into the new image
     width, height = image.size
@@ -77,15 +74,12 @@ def clahe_color(image, blocksize, bins, slope, processes=0):
     # if ray has already been initialized.
     ray.init(ignore_reinit_error=True)
 
-    # Auto-calculate the number of processes needed, if requested.
-    if processes == 0:
-        processes = multiprocessing.cpu_count()-1
-    if processes == 0:
-        processes = 1
+    # Check processes input
+    processes = get_processnumber(processes)
 
     # Turn block size into internal block radius
-    blockRadius = get_blockradius(image, blocksize)
-    slope = float(slope)
+    blockradius = get_blockradius(image, blocksize)
+    slope = get_slope(slope)
     
     # Need to save original mode to re-convert before returning image
     orig_mode = image.mode
@@ -101,7 +95,7 @@ def clahe_color(image, blocksize, bins, slope, processes=0):
     new_pix = new_image.load()
 
     # Execute the CLAHE algorithm
-    dest_rows = do_clahe(image, color_range, blockRadius, bins, slope, processes)
+    dest_rows = do_clahe(image, color_range, blockradius, bins, slope, processes)
 
     # Place the CLAHE pixel values into the new image
     width, height = image.size
@@ -120,26 +114,52 @@ def clahe_color(image, blocksize, bins, slope, processes=0):
 
     return new_image
 
+"""
+The 3 following functions check the blocksize, bins, slope, and processes inputs and react accordingly.
+One key function for the functions is to auto-set the values if the user made a mistake or decides 
+to let the library choose values (if they pass a 0 value in any parameter).
+"""
 def get_blockradius(image, blocksize):
     if blocksize < 5:
         width, height = image.size
+        # Calculate a possibly good blocksize
         new_blocksize = int(min(width, height)/4)
         return int((new_blocksize-1)/2)
     else:
         return int((blocksize-1)/2)
 
 def get_bins(color_range, bins):
+    # Auto-set bins
+    if bins <= 0:
+        bins = 256
+    # and check if auto-set or user passed value is not over range
     if bins > color_range:
         return color_range
+    
+    return int(bins-1)
+
+def get_slope(slope):
+    if slope < 1:
+        # Auto-set to 2.0
+        return 2.0
     else:
-        return int(bins-1)
+        return float(slope)
+
+def get_processnumber(processes):
+    # Auto-set the number of processes needed, if requested.
+    if processes == 0:
+        processes = multiprocessing.cpu_count()-1
+    # And check we are not using 0 after all after the previous assignment
+    if processes == 0:
+        processes = 1
+    return processes
 
 """
 do_clahe() executes the CLAHE algorithm on an image in a parallelized manner.
     It packages work so it can be executed by the number of processes passed as parameter.
     This function is heaviliy commented to understand the use of ray.
 """
-def do_clahe(image, color_range, blockRadius, bins, slope, processes):
+def do_clahe(image, color_range, blockradius, bins, slope, processes):
     
     # Start by calculating the increment in rows for each successive work package
     height = image.size[1]
@@ -165,7 +185,7 @@ def do_clahe(image, color_range, blockRadius, bins, slope, processes):
             stop_row = height_pointer+height_increment
 
         # We execute a process with its work package
-        result_rows.append(clahe_rows.remote(image, color_range, height_pointer, stop_row, blockRadius, bins, slope))
+        result_rows.append(clahe_rows.remote(image, color_range, height_pointer, stop_row, blockradius, bins, slope))
         # We keep going
         height_pointer = height_pointer + height_increment
 
@@ -192,7 +212,7 @@ clahe_rows() executes the CLAHE algorithm on chosen rows.
     It denotes this function can be parallelized by ray.
 """
 @ray.remote
-def clahe_rows(image, color_range, start_row, stop_row, blockRadius, bins, slope):
+def clahe_rows(image, color_range, start_row, stop_row, blockradius, bins, slope):
     
     width, height = image.size
     pix = image.load()
@@ -200,20 +220,20 @@ def clahe_rows(image, color_range, start_row, stop_row, blockRadius, bins, slope
     y = start_row
     dest_rows = []
     while y < stop_row:
-        dest_rows.append(clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope))
+        dest_rows.append(clahe_row(pix, color_range, y, width, height, blockradius, bins, slope))
         y = y + 1
     return dest_rows
 
 """
 clahe_row() executes the CLAHE algorithm on a single row. 
 """
-def clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope):
-    yMin = max(0, y - blockRadius)
-    yMax = min(height, y + blockRadius + 1)
+def clahe_row(pix, color_range, y, width, height, blockradius, bins, slope):
+    yMin = max(0, y - blockradius)
+    yMax = min(height, y + blockradius + 1)
     h = yMax - yMin
 
-    xMin0 = max(0, -blockRadius)
-    xMax0 = min(width - 1, blockRadius)
+    xMin0 = max(0, -blockradius)
+    xMax0 = min(width - 1, blockradius)
 
     hist = calculate_histogram(xMin0, xMax0, yMin, yMax, pix, color_range, bins)
     dest = []
@@ -221,8 +241,8 @@ def clahe_row(pix, color_range, y, width, height, blockRadius, bins, slope):
     x = 0
     while x < width:
         v = round_positive(get_pix_value(pix[x, y]) / color_range * bins)
-        xMin = max(0, x - blockRadius)
-        xMax = x + blockRadius + 1
+        xMin = max(0, x - blockradius)
+        xMax = x + blockradius + 1
         w = min(width, xMax) - xMin
         n = h * w
 
