@@ -2,7 +2,7 @@
 
 ## Overview
 
-A Python library that implements a parallelized version of the [Contrast Limited Adaptive Histogram Equalization (CLAHE)](https://en.wikipedia.org/wiki/Adaptive_histogram_equalization) algorithm on image types supported by Pillow, including 16 bpp grayscale and color images. I would highly recommend prospective developers read the top-level README file, as it contains information about dependencies and other important details.
+A Python library that implements a parallelized version of the [Contrast Limited Adaptive Histogram Equalization (CLAHE)](https://en.wikipedia.org/wiki/Adaptive_histogram_equalization) algorithm on image types supported by Pillow, including 16 bpp grayscale and color images. I would highly recommend prospective developers read the top-level README file, as it contains information about dependencies, how to use the library, and other important details that are not covered here.
 
 At a very high level this is what this library does:
 
@@ -57,6 +57,8 @@ As an elaboration:
 * slope limits the contrast stretch in the intensity transfer function. 
 * processes (optional) sets the number of processes to subdivide tasks across CPU cores.
 
+Except for image, all of these parameters can be set to a 0 in case the user wants the library to pick values of its own.
+
 The functions return a new Pillow image with the CLAHE pixel data.
 
 ### 5
@@ -64,3 +66,18 @@ The functions return a new Pillow image with the CLAHE pixel data.
 The library has code optimizations that make the code look more C code than Python code (extensive use of loops, etc.), however, this was done after finding that numerical operations on arrays an lists were costly. I still blame my lack of Python knowledge for this anyway. It was also found that Python's round() function is slower than the round_positive() function currently in the code. Since this function is used frequently, the overhead became a small but still significant amount of time.
 
 The largest increase in performance has been achieved with the use of parallelism in the code. It has been described above so I won't go into more details on this until later. At a very high level, I just subdivided the input image into equal chunks that were dispatched to different CLAHE processes implemented via the ray library. The new CLAHE image chunks are later reassembled into the image that is returned to the caller of the clahe_* methods.
+
+## High-level flow
+
+This section is provided in case the reader would like to understand more about how the code operates and possibly modify it for their own purposes. Note that most users' use of the library will be limited to calling the clahe_* methods.
+
+1. User calls one of the clahe_* functions.
+2. clahe_* initializes ray
+3. clahe_* checks input parameters
+4. clahe_* sets the bit depth to use
+5. clahe_* creates a new image to copy new data to
+6. clahe_* invokes do_clahe
+    1. do_clahe creates the sub-image packages to be passed to processes
+    2. for each package, do_clahe performs a 'remote' call to execute each CLAHE calculation process
+
+
