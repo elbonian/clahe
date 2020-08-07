@@ -1,4 +1,5 @@
-import clahelib
+from clahelib import clahe_color
+from clahelib import clahe_bw
 from PIL import Image
 import cProfile, pstats
 import ray

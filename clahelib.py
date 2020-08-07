@@ -1,4 +1,5 @@
 from PIL import Image
+import math
 import multiprocessing
 import ray
 
@@ -31,8 +32,7 @@ def clahe_bw(image, blocksize, bins, slope, processes=0):
         processes = 1
 
     # Turn block size into internal block radius
-    blockRadius = int((blocksize-1)/2)
-    bins = int(bins-1)
+    blockRadius = get_blockradius(image, blocksize)
     slope = float(slope)
 
     # Convert image to 8 bpp grayscale if needed
@@ -44,6 +44,8 @@ def clahe_bw(image, blocksize, bins, slope, processes=0):
     if image.mode == "I;16":
         color_range = 65535
     
+    bins = get_bins(color_range, bins)
+
     # Load original image, destination, and size.
     new_image = image.copy()
     new_pix = new_image.load()
@@ -82,8 +84,7 @@ def clahe_color(image, blocksize, bins, slope, processes=0):
         processes = 1
 
     # Turn block size into internal block radius
-    blockRadius = int((blocksize-1)/2)
-    bins = int(bins-1)
+    blockRadius = get_blockradius(image, blocksize)
     slope = float(slope)
     
     # Need to save original mode to re-convert before returning image
@@ -93,6 +94,8 @@ def clahe_color(image, blocksize, bins, slope, processes=0):
     image = image.convert("HSV")
     color_range = 255
     
+    bins = get_bins(color_range, bins)
+
     # Load original image, destination, and sizes
     new_image = image.copy()
     new_pix = new_image.load()
@@ -116,6 +119,20 @@ def clahe_color(image, blocksize, bins, slope, processes=0):
     new_image = new_image.convert(orig_mode)
 
     return new_image
+
+def get_blockradius(image, blocksize):
+    if blocksize < 5:
+        width, height = image.size
+        new_blocksize = int(min(width, height)/4)
+        return int((new_blocksize-1)/2)
+    else:
+        return int((blocksize-1)/2)
+
+def get_bins(color_range, bins):
+    if bins > color_range:
+        return color_range
+    else:
+        return int(bins-1)
 
 """
 do_clahe() executes the CLAHE algorithm on an image in a parallelized manner.
