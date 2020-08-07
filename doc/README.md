@@ -100,3 +100,12 @@ The clahe_row function does the following:
     4. Calculate new pixel value as (cdf - cdfMin) / (cdfMax - cdfMin) * color_range
 4. Save/return list of new pixel values
 
+## Known Issues
+
+* Minor: The code does not check the bins parameter to the clahe_* functions is smaller than the number of pixels in a block.
+* Minor: While not a bug and already a considerable improvement over a serialized version of the algorithm. There must be avenues to improve performance either through technology (through a better understanding of Python), or via changes to the CLAHE algorithm itself. There is a fast version of the same algorithm that does not evaluate the intensity transfer function for each pixel independently but for a grid of adjacent boxes of the given block size only and interpolates for locations in between. This could prove substantially faster.
+
+## Future work
+
+* Performance enhancements (see above), including use of ray for work on remote computers.
+* CLI and/or UI for the tool.
