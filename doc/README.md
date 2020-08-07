@@ -34,10 +34,33 @@ These are the requirements the software was developed against:
 
 ## Design
 
-In this section we cover how the code supports the aforementioned requirements.
+In this section I cover how the code supports the aforementioned requirements.
 
-### The library shall perform the CLAHE algorithm on both color and grayscale images.
-### The library shall support input files in JPG, PNG, and TIFF format.
-### The library shall support grayscale images of an arbitrary color range.
+### 1, 2, 3
 
-In otder to accomplish this goal, the library implements another library called Pillow. This library is well-known by Python developers and supports numerous input formats.
+In order to partially accomplish requirements #1, #2, and #3, the library implements another library called Pillow. This library is well-known by Python developers and supports numerous input formats. Pillow lets users easily access pixel data that can be modified. It also lets users create new images with new or modified pixel data. The CLAHE algorithm itself supports arbitrary color ranges in one component, with the particularity that color images will always be converted into HSV to enjoy the V component for its histogram operations.
+
+The main entry point for the code are the clahe_bw and clahe_color functions, that execute the CLAHE algorithm on grayscale and color images, respectively. The need to have two different functions stems from the fact that a user might want to treat a color image as grayscale. In essence, it's to provide flexibility for users.
+
+### 1, 4
+
+The clahe_bw and clahe_color functions support the block size, slope, and bins parameters via their signature have the following signatures:
+
+    clahe_bw(image, blocksize, bins, slope, processes=0)
+    clahe_color(image, blocksize, bins, slope, processes=0)
+
+As an elaboration:
+
+* image is the input Pillow image.
+* blocksize is the size of the local region around a pixel for which the histogram is equalized.
+* bins is the number of histogram bins used for histogram equalization.
+* slope limits the contrast stretch in the intensity transfer function. 
+* processes (optional) sets the number of processes to subdivide tasks across CPU cores.
+
+The functions return a new Pillow image with the CLAHE pixel data.
+
+### 5
+
+The library has code optimizations that make the code look more C code than Python code (extensive use of loops, etc.), however, this was done after finding that numerical operations on arrays an lists were costly. I still blame my lack of Python knowledge for this anyway. It was also found that Python's round() function is slower than the round_positive() function currently in the code. Since this function is used frequently, the overhead became a small but still significant amount of time.
+
+The largest increase in performance has been achieved with the use of parallelism in the code. It has been described above so I won't go into more details on this until later. At a very high level, I just subdivided the input image into equal chunks that were dispatched to different CLAHE processes implemented via the ray library. The new CLAHE image chunks are later reassembled into the image that is returned to the caller of the clahe_* methods.
