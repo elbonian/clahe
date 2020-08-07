@@ -78,6 +78,25 @@ This section is provided in case the reader would like to understand more about 
 5. clahe_* creates a new image to copy new data to
 6. clahe_* invokes do_clahe
     1. do_clahe creates the sub-image packages to be passed to processes
-    2. for each package, do_clahe performs a 'remote' call to execute each CLAHE calculation process
+    2. for each package, do_clahe performs a 'remote' call to execute clahe_rows on each process. clahe rows is a function that executes the CLAHE algorithm from one row to another.
+    3. do_clahe waits for each process to finish
+    4. do_clahe assembles newly calculated rows into a 2D list
+    5. do_clahe returns the 2D list to the calling clahe_* function
+7. clahe_* places the 2D list into the new image
+8. clahe_* returns the new image
 
+## Additional functions
+
+The CLAHE algorithm itself is contained in the clahe_rows and clahe_row functions. The former runs the CLAHE algorithm on an interval of rows while the latter runs the CLAHE algorithm in just one row. As one can check in the code, the clahe_rows function calls clahe_row.
+
+The clahe_row function does the following:
+
+1. Calculate the sub-image in which to calculate the histogram
+2. Calculate the histogram
+3. For each column (pixel in the row):
+    1. Adjust histogram
+    2. Clip histogram and redistribute clipped entries with clip_histogram
+    3. Calculate CDF, CDF min, CDF max of the clipped histogram with calculate_cdf
+    4. Calculate new pixel value as (cdf - cdfMin) / (cdfMax - cdfMin) * color_range
+4. Save/return list of new pixel values
 
