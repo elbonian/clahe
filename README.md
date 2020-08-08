@@ -58,8 +58,6 @@ Note that the process parameter hasn't been set in the example above and will us
 
 # Known issues
 
-The blocksize, bins, and slope parameters to the clahe functions are not range-checked. This is done on purpose in case users of the library think of creative uses for those parameters.
-
 The performance of the code might still be improvable. I tried using numpy and other Python-friendly techniques but, apparently, the code I have today is the best performing code I could develop with the time that I had.
 
 # Acknowledgments
