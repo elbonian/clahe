@@ -16,8 +16,7 @@ This might take anywhere from seconds to minutes
 depending on computer type, image, and parameters passed.
 """
 im = Image.open("images/timpanogos_small.tif")
-#new_image = clahe_color(im, 63, 256, 2.5)
-new_image = clahe_color(im, 0, 0, 0)
+new_image = clahe_color(im, 63, 256, 2.5)
 new_image.save("images/output.png")
 
 # These 4 lines are only needed if algorithm needs to be profiled.
